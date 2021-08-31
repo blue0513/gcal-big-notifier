@@ -1,3 +1,3 @@
 # gcal-big-notifier
 
-![](https://github.com/blue0513/gcal-big-notifier/workflows/lint/badge.svg)
+[![Lint](https://github.com/blue0513/gcal-big-notifier/actions/workflows/lint.yml/badge.svg)](https://github.com/blue0513/gcal-big-notifier/actions/workflows/lint.yml)
