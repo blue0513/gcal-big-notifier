@@ -1,7 +1,6 @@
 const { app, BrowserWindow } = require('electron')
 const { ipcMain } = require('electron')
 
-const path = require('path')
 let mainWindow = null;
 
 function createWindow () {
@@ -33,15 +32,17 @@ app.whenReady().then(() => {
   })
 })
 
+/* eslint-disable no-undef */
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 })
+/* eslint-disable no-undef */
 
-ipcMain.on('sendSchedule', (event, arg) => {
+ipcMain.on('sendSchedule', () => {
   mainWindow.show();
   mainWindow.setAlwaysOnTop(true);
 })
 
-ipcMain.on('hideWindow', (event, arg) => {
+ipcMain.on('hideWindow', () => {
   mainWindow.hide();
 })
