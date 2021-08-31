@@ -1,12 +1,12 @@
-const { ipcRenderer } = require('electron')
-const ical = require('ical');
-const moment = require('moment');
-const axios = require('axios');
-const fs = require('fs');
+const { ipcRenderer } = require("electron");
+const ical = require("ical");
+const moment = require("moment");
+const axios = require("axios");
+const fs = require("fs");
 
-const json = JSON.parse(fs.readFileSync('./secret.json', 'utf8'))
+const json = JSON.parse(fs.readFileSync("./secret.json", "utf8"));
 const within = 10.0; // 10 min
-const intervalSec = 5*60*1000; // 5 min
+const intervalSec = 5 * 60 * 1000; // 5 min
 
 let timers = [];
 
@@ -16,20 +16,23 @@ const fetchTodayEvents = (data) => {
   for (let k in data) {
     if (data && Object.prototype.hasOwnProperty.call(data, k)) {
       var ev = data[k];
-      if (data[k].type == 'VEVENT' && isTodayEvent(ev.start)) {
+      if (data[k].type == "VEVENT" && isTodayEvent(ev.start)) {
         results.push(ev);
       }
     }
   }
 
-  console.log('today events: ', results.map((ev) => ev.summary));
+  console.log(
+    "today events: ",
+    results.map((ev) => ev.summary)
+  );
   return results;
-}
+};
 
 const isTodayEvent = (startTime) => {
-  const isCurrentDate = moment(startTime).isSame(new Date(), 'day');
+  const isCurrentDate = moment(startTime).isSame(new Date(), "day");
   return isCurrentDate;
-}
+};
 
 const isCloseEvent = (startTime) => {
   const now = moment();
@@ -37,13 +40,13 @@ const isCloseEvent = (startTime) => {
   const minutes = duration.asMinutes();
 
   return minutes > 0 && minutes < within;
-}
+};
 
 async function fetchCloseEvent() {
-  const response = await axios.get(json['url']);
-  const data = ical.parseICS(response['data']);
+  const response = await axios.get(json["url"]);
+  const data = ical.parseICS(response["data"]);
   const todayEvents = fetchTodayEvents(data);
-  const events = todayEvents.filter(ev => isCloseEvent(ev.start));
+  const events = todayEvents.filter((ev) => isCloseEvent(ev.start));
 
   return events;
 }
@@ -52,50 +55,51 @@ const setTimers = (events) => {
   clearTimers(timers);
   const now = moment();
 
-  events.forEach(ev => {
+  events.forEach((ev) => {
     let duration = moment.duration(moment(ev.start).diff(now));
     let minutes = duration.asMinutes();
     let time = (minutes - 1) * 60 * 1000;
 
-    console.log(`event: ${ev.summary} in ${time/1000.0} sec`)
+    console.log(`event: ${ev.summary} in ${time / 1000.0} sec`);
 
-    timers.push(
-      setTimeout(appearFunc, time, ev.summary, ev.start)
-    );
+    timers.push(setTimeout(appearFunc, time, ev.summary, ev.start));
   });
-}
+};
 
 const clearTimers = (targetTimers) => {
   if (targetTimers.length === 0) {
     return;
   }
 
-  targetTimers.forEach(timer => {
+  targetTimers.forEach((timer) => {
     clearTimeout(timer);
   });
-}
+};
 
 const appearFunc = (title, startTime) => {
-  console.log('title: ', title);
+  console.log("title: ", title);
 
-  const titleDiv = document.getElementsByClassName('child')[0];
+  const titleDiv = document.getElementsByClassName("child")[0];
   titleDiv.innerText = title;
 
-  const scheduleDiv = document.getElementsByClassName('schedule')[0];
-  scheduleDiv.innerText = moment(startTime).format('HH:mm');
-  ipcRenderer.send('sendSchedule');
-}
+  const scheduleDiv = document.getElementsByClassName("schedule")[0];
+  scheduleDiv.innerText = moment(startTime).format("HH:mm");
+  ipcRenderer.send("sendSchedule");
+};
 
 async function setNextTimers() {
   const nextEvents = await fetchCloseEvent();
-  console.log('nextEvents: ', nextEvents.map((ev) => ev.summary));
+  console.log(
+    "nextEvents: ",
+    nextEvents.map((ev) => ev.summary)
+  );
   setTimers(nextEvents);
 }
 
 /* eslint-disable no-unused-vars */
 const buttonClick = () => {
-  ipcRenderer.send('hideWindow');
-}
+  ipcRenderer.send("hideWindow");
+};
 /* eslint-enable no-unused-vars */
 
 setNextTimers();
