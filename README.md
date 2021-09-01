@@ -20,6 +20,7 @@ Then, you should set the URL to `secret.json` as follows.
   "url": "YOUR URL"
 }
 ```
+
 ### 2. Run the application
 
 ```console
