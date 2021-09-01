@@ -10,23 +10,19 @@ const intervalSec = 5 * 60 * 1000; // 5 min
 
 let timers = [];
 
-const fetchTodayEvents = (data) => {
-  let results = [];
+const parseTodayEvents = (data) => {
+  let events = [];
 
   for (let k in data) {
     if (data && Object.prototype.hasOwnProperty.call(data, k)) {
       var ev = data[k];
       if (data[k].type == "VEVENT" && isTodayEvent(ev.start)) {
-        results.push(ev);
+        events.push(ev);
       }
     }
   }
 
-  console.log(
-    "today events: ",
-    results.map((ev) => ev.summary)
-  );
-  return results;
+  return events;
 };
 
 const isTodayEvent = (startTime) => {
@@ -41,15 +37,6 @@ const isCloseEvent = (startTime) => {
 
   return minutes > 0 && minutes < within;
 };
-
-async function fetchCloseEvent() {
-  const response = await axios.get(json["url"]);
-  const data = ical.parseICS(response["data"]);
-  const todayEvents = fetchTodayEvents(data);
-  const events = todayEvents.filter((ev) => isCloseEvent(ev.start));
-
-  return events;
-}
 
 const setTimers = (events) => {
   clearTimers(timers);
@@ -67,9 +54,7 @@ const setTimers = (events) => {
 };
 
 const clearTimers = (targetTimers) => {
-  if (targetTimers.length === 0) {
-    return;
-  }
+  if (targetTimers.length === 0) return;
 
   targetTimers.forEach((timer) => {
     clearTimeout(timer);
@@ -77,22 +62,26 @@ const clearTimers = (targetTimers) => {
 };
 
 const appearFunc = (title, startTime) => {
-  console.log("title: ", title);
-
   const titleDiv = document.getElementsByClassName("child")[0];
   titleDiv.innerText = title;
 
   const scheduleDiv = document.getElementsByClassName("schedule")[0];
   scheduleDiv.innerText = moment(startTime).format("HH:mm");
+
   ipcRenderer.send("sendSchedule");
 };
 
 async function setNextTimers() {
-  const nextEvents = await fetchCloseEvent();
+  const response = await axios.get(json["url"]);
+  const data = ical.parseICS(response["data"]);
+  const todayEvents = parseTodayEvents(data);
+  const nextEvents = todayEvents.filter((e) => isCloseEvent(e.start));
+
   console.log(
     "nextEvents: ",
     nextEvents.map((ev) => ev.summary)
   );
+
   setTimers(nextEvents);
 }
 
