@@ -2,10 +2,14 @@
 
 [![Lint](https://github.com/blue0513/gcal-big-notifier/actions/workflows/lint.yml/badge.svg)](https://github.com/blue0513/gcal-big-notifier/actions/workflows/lint.yml)
 
+[![Image from Gyazo](https://i.gyazo.com/11454f63032669576f7663634cff1c78.gif)](https://gyazo.com/11454f63032669576f7663634cff1c78)
+
+You'll never miss a meeting notification again!
+
 ## What is gcal-big-notifier
 
-`gcal-big-notifier` will prevent you from forgetting to attend your next schedule.  
-When the next scheduled time is less than a minute away, the app will appear on the top of screen.
+Connecting with Google Calendar, `gcal-big-notifier` will prevent you from forgetting to attend your next schedule.  
+When the next scheduled time is less than a minute away, the big window will appear and stay on the top of screen.
 
 ## Quick Start
 
@@ -27,3 +31,5 @@ Then, you should set the URL to `secret.json` as follows.
 $ npm install
 $ npm run start
 ```
+
+The big window of the application will appear 1 min before the next schedule starts.
