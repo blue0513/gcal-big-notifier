@@ -2,21 +2,25 @@ const { ipcRenderer } = require("electron");
 const ical = require("ical");
 const moment = require("moment");
 const axios = require("axios");
-const fs = require("fs");
+const fs = require("fs").promises;
 
-const json = JSON.parse(fs.readFileSync("./secret.json", "utf8"));
-const within = 10.0; // 10 min
-const intervalSec = 5 * 60 * 1000; // 5 min
+const notifyBeforeMin = 1.0;
+const intervalMin = 5.0;
 
-let timers = [];
+let notificationTimers = [];
 
-const parseTodayEvents = (data) => {
+async function fetchCalendarJson() {
+  const fileBody = await fs.readFile("./secret.json", "utf-8");
+  return JSON.parse(fileBody);
+}
+
+const parseEvents = (data) => {
   let events = [];
 
   for (let k in data) {
     if (data && Object.prototype.hasOwnProperty.call(data, k)) {
-      var ev = data[k];
-      if (data[k].type == "VEVENT" && isTodayEvent(ev.start)) {
+      let ev = data[k];
+      if (ev.type == "VEVENT") {
         events.push(ev);
       }
     }
@@ -30,26 +34,32 @@ const isTodayEvent = (startTime) => {
   return isCurrentDate;
 };
 
-const isCloseEvent = (startTime) => {
+const isNextEvent = (startTime) => {
   const now = moment();
-  const duration = moment.duration(moment(startTime).diff(now));
-  const minutes = duration.asMinutes();
-
-  return minutes > 0 && minutes < within;
+  const minutes = minutesBetween(now, startTime);
+  return minutes > 0;
 };
 
-const setTimers = (events) => {
-  clearTimers(timers);
+const minutesBetween = (since, until) => {
+  const duration = moment.duration(moment(until).diff(since));
+  return duration.asMinutes();
+};
+
+const setTimersAfterClear = (events) => {
+  clearTimers(notificationTimers);
+
+  if (events.length === 0) return;
+
   const now = moment();
-
   events.forEach((ev) => {
-    let duration = moment.duration(moment(ev.start).diff(now));
-    let minutes = duration.asMinutes();
-    let time = (minutes - 1) * 60 * 1000;
+    let minutes = minutesBetween(now, ev.start);
+    let minutesFromNow = (minutes - notifyBeforeMin) * 60 * 1000;
+    let title = ev.summary;
+    let startTime = ev.start;
 
-    console.log(`event: ${ev.summary} in ${time / 1000.0} sec`);
-
-    timers.push(setTimeout(appearFunc, time, ev.summary, ev.start));
+    notificationTimers.push(
+      setTimeout(displaySchedule, minutesFromNow, title, startTime)
+    );
   });
 };
 
@@ -61,29 +71,15 @@ const clearTimers = (targetTimers) => {
   });
 };
 
-const appearFunc = (title, startTime) => {
+const displaySchedule = (title, startTime) => {
   const titleDiv = document.getElementsByClassName("child")[0];
-  titleDiv.innerText = title;
-
   const scheduleDiv = document.getElementsByClassName("schedule")[0];
+
+  titleDiv.innerText = title;
   scheduleDiv.innerText = moment(startTime).format("HH:mm");
 
   ipcRenderer.send("sendSchedule");
 };
-
-async function setNextTimers() {
-  const response = await axios.get(json["url"]);
-  const data = ical.parseICS(response["data"]);
-  const todayEvents = parseTodayEvents(data);
-  const nextEvents = todayEvents.filter((e) => isCloseEvent(e.start));
-
-  console.log(
-    "nextEvents: ",
-    nextEvents.map((ev) => ev.summary)
-  );
-
-  setTimers(nextEvents);
-}
 
 /* eslint-disable no-unused-vars */
 const buttonClick = () => {
@@ -91,5 +87,33 @@ const buttonClick = () => {
 };
 /* eslint-enable no-unused-vars */
 
-setNextTimers();
-setInterval(setNextTimers, intervalSec);
+async function fetchEventsData() {
+  const json = await fetchCalendarJson();
+  const response = await axios.get(json["url"]);
+  const data = ical.parseICS(response["data"]);
+  return parseEvents(data);
+}
+
+const filterTodayEvents = (events) => {
+  return events.filter((ev) => isTodayEvent(ev.start));
+};
+
+const filterNextEvents = (events) => {
+  return events.filter((ev) => isNextEvent(ev.start));
+};
+
+async function main() {
+  const eventsData = await fetchEventsData();
+  const todayEvents = filterTodayEvents(eventsData);
+  const nextEvents = filterNextEvents(todayEvents);
+
+  console.log(
+    "next: ",
+    nextEvents.map((e) => e.summary)
+  );
+
+  setTimersAfterClear(nextEvents);
+}
+
+main();
+setInterval(main, intervalMin * 60 * 1000);
