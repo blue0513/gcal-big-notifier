@@ -29,6 +29,34 @@ const parseEvents = (data) => {
   return events;
 };
 
+const flattenEvents = (nestedEvents) => {
+  return nestedEvents
+    .map((ev) => {
+      let evs = [];
+
+      if (ev.rrule) {
+        const todayRules = ev.rrule.all().filter((time) => {
+          return isTodayEvent(time);
+        });
+        const todayEvents = todayRules.map((time) => {
+          return { summary: ev.summary, start: time };
+        });
+        evs.push(todayEvents);
+      }
+
+      if (ev.recurrences) {
+        const todayEvents = ev.recurrences.filter((ev) => {
+          isTodayEvent(ev.start);
+        });
+        evs.push(todayEvents);
+      }
+
+      evs.push(ev);
+      return evs;
+    })
+    .flat(Infinity);
+};
+
 const isTodayEvent = (startTime) => {
   const isCurrentDate = moment(startTime).isSame(new Date(), "day");
   return isCurrentDate;
@@ -104,7 +132,8 @@ const filterNextEvents = (events) => {
 
 async function main() {
   const eventsData = await fetchEventsData();
-  const todayEvents = filterTodayEvents(eventsData);
+  const flattenEventsData = flattenEvents(eventsData);
+  const todayEvents = filterTodayEvents(flattenEventsData);
   const nextEvents = filterNextEvents(todayEvents);
 
   console.log(
