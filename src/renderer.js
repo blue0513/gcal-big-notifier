@@ -4,14 +4,15 @@ const moment = require("moment");
 const axios = require("axios");
 const fs = require("fs").promises;
 
-const notifyBeforeMin = 2.0;
-const intervalMin = 15.0;
+// configurable variables
+let notifyBeforeMin = 2.0;
+let intervalMin = 15.0;
 
 let notificationTimers = [];
 let storedNextEvents = [];
 
-async function fetchCalendarJson() {
-  const fileBody = await fs.readFile("./secret.json", "utf-8");
+async function fetchConfigJson() {
+  const fileBody = await fs.readFile("./config.Json", "utf-8");
   return JSON.parse(fileBody);
 }
 
@@ -125,9 +126,21 @@ const hidePopup = () => {
 };
 /* eslint-enable no-unused-vars */
 
-async function fetchEventsData() {
-  const json = await fetchCalendarJson();
-  const response = await axios.get(json["url"]);
+const setConfiguration = (configJson) => {
+  const maybeNotifyBeforeMin = configJson["notificationMinutes"];
+  const maybeFetchInterval =configJson["fetchInterval"];
+
+  if (!isNaN(maybeNotifyBeforeMin)) {
+    notifyBeforeMin = parseFloat(maybeNotifyBeforeMin);
+  }
+
+  if (!isNaN(maybeFetchInterval)) {
+    intervalMin = parseFloat(maybeFetchInterval);
+  }
+}
+
+async function fetchEventsData(configJson) {
+  const response = await axios.get(configJson["url"]);
   const data = ical.parseICS(response["data"]);
   return parseEvents(data);
 }
@@ -182,8 +195,8 @@ const registerIpcReceive = () => {
   });
 };
 
-async function main() {
-  const eventsData = await fetchEventsData();
+async function main(configJson) {
+  const eventsData = await fetchEventsData(configJson);
   const flattenEventsData = flattenEvents(eventsData);
   const todayEvents = filterTodayEvents(flattenEventsData);
   const nextEvents = filterNextEvents(todayEvents);
@@ -195,6 +208,21 @@ async function main() {
   setTimersAfterClear(nextEvents);
 }
 
-registerIpcReceive();
-main();
-setInterval(main, intervalMin * 60 * 1000);
+async function beforeStart(configJson) {
+  registerIpcReceive();
+  setConfiguration(configJson);
+}
+
+async function start() {
+  const configJson = await fetchConfigJson();
+  await beforeStart(configJson);
+
+  console.log(
+    `fetchInterval: ${intervalMin}, notifyBeforeMin: ${notifyBeforeMin}`
+  );
+
+  main(configJson);
+  setInterval(main, intervalMin * 60 * 1000);
+}
+
+start();

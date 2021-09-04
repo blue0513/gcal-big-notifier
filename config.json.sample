@@ -1,0 +1,5 @@
+{
+  "url": "https://calendar.google.com/calendar/ical/..../basic.ics",
+  "fetchInterval": 15.0,
+  "notificationMinutes": 2.0
+}
