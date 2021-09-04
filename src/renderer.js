@@ -128,7 +128,7 @@ const hidePopup = () => {
 
 const setConfiguration = (configJson) => {
   const maybeNotifyBeforeMin = configJson["notificationMinutes"];
-  const maybeFetchInterval =configJson["fetchInterval"];
+  const maybeFetchInterval = configJson["fetchInterval"];
 
   if (!isNaN(maybeNotifyBeforeMin)) {
     notifyBeforeMin = parseFloat(maybeNotifyBeforeMin);
@@ -137,7 +137,7 @@ const setConfiguration = (configJson) => {
   if (!isNaN(maybeFetchInterval)) {
     intervalMin = parseFloat(maybeFetchInterval);
   }
-}
+};
 
 async function fetchEventsData(configJson) {
   const response = await axios.get(configJson["url"]);
