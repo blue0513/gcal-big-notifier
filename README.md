@@ -27,10 +27,10 @@ Then, you should set the URL to `config.json` as follows.
 }
 ```
 
-+ fetchInterval (default: `15.0`)
-  + the interval minutes to fetch data from Google Calendar
-+ notificationMinutes (default: `2.0`)
-  + minutes before notification triggered
+- fetchInterval (default: `15.0`)
+  - the interval minutes to fetch data from Google Calendar
+- notificationMinutes (default: `2.0`)
+  - minutes before notification triggered
 
 ### 2. Run the application
 
