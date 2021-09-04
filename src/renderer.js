@@ -133,12 +133,14 @@ async function fetchEventsData() {
 }
 
 const buildEventsListElement = (events) => {
-  return sortEvents(events).map((ev) => {
-    let time = moment(ev.start).format("HH:mm");
-    let title = ev.summary
-    return `${time} _ ${title}\n`;
-  }).join("");
-}
+  return sortEvents(events)
+    .map((ev) => {
+      let time = moment(ev.start).format("HH:mm");
+      let title = ev.summary;
+      return `${time} _ ${title}\n`;
+    })
+    .join("");
+};
 
 const attachNextEvents = (nextEvents) => {
   const targetDiv = document.getElementsByClassName("child-small")[0];
@@ -147,23 +149,23 @@ const attachNextEvents = (nextEvents) => {
     const text = buildEventsListElement(nextEvents);
     targetDiv.innerText = text;
   }
-}
+};
 
 const storeNextEvents = (events) => {
   storedNextEvents = events;
-}
+};
 
 const fetchNextEvents = () => {
   return storedNextEvents;
-}
+};
 
 const findNextEvent = (nextEvents) => {
   return sortEvents(nextEvents)[0];
-}
+};
 
 const sortEvents = (events) => {
   return events.sort(minutesBetween).reverse();
-}
+};
 
 const filterTodayEvents = (events) => {
   return events.filter((ev) => isTodayEvent(ev.start));
@@ -173,10 +175,12 @@ const filterNextEvents = (events) => {
   return events.filter((ev) => isNextEvent(ev.start));
 };
 
-ipcRenderer.on('fromMain', () => {
-  const nextEvents = fetchNextEvents();
-  attachNextEvents(nextEvents);
-});
+const registerIpcReceive = () => {
+  ipcRenderer.on("fromMain", () => {
+    const nextEvents = fetchNextEvents();
+    attachNextEvents(nextEvents);
+  });
+};
 
 async function main() {
   const eventsData = await fetchEventsData();
@@ -191,5 +195,6 @@ async function main() {
   setTimersAfterClear(nextEvents);
 }
 
+registerIpcReceive();
 main();
 setInterval(main, intervalMin * 60 * 1000);

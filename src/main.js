@@ -24,7 +24,7 @@ const createWindow = () => {
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
-}
+};
 
 const createPopupWindow = () => {
   popupWindow = new BrowserWindow({
@@ -43,7 +43,7 @@ const createPopupWindow = () => {
   popupWindow.on("show", () => {
     popupWindow.webContents.send("fromMain", "ABC");
   });
-}
+};
 
 app.whenReady().then(() => {
   createWindow();
@@ -69,9 +69,9 @@ ipcMain.on("hideWindow", () => {
 });
 
 ipcMain.on("showPopup", () => {
-  popupWindow.show()
+  popupWindow.show();
 });
 
 ipcMain.on("hidePopup", () => {
-  popupWindow.hide()
+  popupWindow.hide();
 });
