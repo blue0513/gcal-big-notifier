@@ -4,8 +4,8 @@ const moment = require("moment");
 const axios = require("axios");
 const fs = require("fs").promises;
 
-const notifyBeforeMin = 1.0;
-const intervalMin = 5.0;
+const notifyBeforeMin = 2.0;
+const intervalMin = 15.0;
 
 let notificationTimers = [];
 let storedNextEvents = [];
@@ -133,7 +133,7 @@ async function fetchEventsData() {
 }
 
 const buildEventsListElement = (events) => {
-  return events.map((ev) => {
+  return sortEvents(events).map((ev) => {
     let time = moment(ev.start).format("HH:mm");
     let title = ev.summary
     return `${time} _ ${title}\n`;
@@ -157,6 +157,14 @@ const fetchNextEvents = () => {
   return storedNextEvents;
 }
 
+const findNextEvent = (nextEvents) => {
+  return sortEvents(nextEvents)[0];
+}
+
+const sortEvents = (events) => {
+  return events.sort(minutesBetween).reverse();
+}
+
 const filterTodayEvents = (events) => {
   return events.filter((ev) => isTodayEvent(ev.start));
 };
@@ -175,8 +183,11 @@ async function main() {
   const flattenEventsData = flattenEvents(eventsData);
   const todayEvents = filterTodayEvents(flattenEventsData);
   const nextEvents = filterNextEvents(todayEvents);
-
   storeNextEvents(nextEvents);
+
+  const nextEvent = findNextEvent(nextEvents);
+  displaySchedule(nextEvent.summary, nextEvent.start);
+
   setTimersAfterClear(nextEvents);
 }
 
