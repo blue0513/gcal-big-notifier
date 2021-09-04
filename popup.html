@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Gcal Big Notifier</title>
     <link rel="stylesheet" href="css/style.css" />
     <link
       href="https://fonts.googleapis.com/css?family=Anton"
@@ -9,21 +8,16 @@
       />
   </head>
   <body>
-    <div class="schedule">00:00</div>
     <div class="container">
-      <div class="child">Title Here</div>
+      <div class="child-small">
+        ABC
+      </div>
     </div>
-    <input
-      class="hide-button"
-      type="button"
-      value="CLOSE"
-      onclick="buttonClick()"
-      />
     <input
       class="popup-button"
       type="button"
-      value="next events"
-      onclick="showPopup()"
+      value="close"
+      onclick="hidePopup()"
       />
     <script src="./src/renderer.js"></script>
   </body>

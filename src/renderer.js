@@ -8,6 +8,7 @@ const notifyBeforeMin = 1.0;
 const intervalMin = 5.0;
 
 let notificationTimers = [];
+let storedNextEvents = [];
 
 async function fetchCalendarJson() {
   const fileBody = await fs.readFile("./secret.json", "utf-8");
@@ -29,6 +30,7 @@ const parseEvents = (data) => {
   return events;
 };
 
+// TODO: should Unit Test
 const flattenEvents = (nestedEvents) => {
   return nestedEvents
     .map((ev) => {
@@ -113,6 +115,14 @@ const displaySchedule = (title, startTime) => {
 const buttonClick = () => {
   ipcRenderer.send("hideWindow");
 };
+
+const showPopup = () => {
+  ipcRenderer.send("showPopup");
+};
+
+const hidePopup = () => {
+  ipcRenderer.send("hidePopup");
+};
 /* eslint-enable no-unused-vars */
 
 async function fetchEventsData() {
@@ -120,6 +130,31 @@ async function fetchEventsData() {
   const response = await axios.get(json["url"]);
   const data = ical.parseICS(response["data"]);
   return parseEvents(data);
+}
+
+const buildEventsListElement = (events) => {
+  return events.map((ev) => {
+    let time = moment(ev.start).format("HH:mm");
+    let title = ev.summary
+    return `${time} _ ${title}\n`;
+  }).join("");
+}
+
+const attachNextEvents = (nextEvents) => {
+  const targetDiv = document.getElementsByClassName("child-small")[0];
+
+  if (targetDiv) {
+    const text = buildEventsListElement(nextEvents);
+    targetDiv.innerText = text;
+  }
+}
+
+const storeNextEvents = (events) => {
+  storedNextEvents = events;
+}
+
+const fetchNextEvents = () => {
+  return storedNextEvents;
 }
 
 const filterTodayEvents = (events) => {
@@ -130,17 +165,18 @@ const filterNextEvents = (events) => {
   return events.filter((ev) => isNextEvent(ev.start));
 };
 
+ipcRenderer.on('fromMain', () => {
+  const nextEvents = fetchNextEvents();
+  attachNextEvents(nextEvents);
+});
+
 async function main() {
   const eventsData = await fetchEventsData();
   const flattenEventsData = flattenEvents(eventsData);
   const todayEvents = filterTodayEvents(flattenEventsData);
   const nextEvents = filterNextEvents(todayEvents);
 
-  console.log(
-    "next: ",
-    nextEvents.map((e) => e.summary)
-  );
-
+  storeNextEvents(nextEvents);
   setTimersAfterClear(nextEvents);
 }
 
