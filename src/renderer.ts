@@ -15,8 +15,8 @@ interface ConfigJson {
 type TimeHandler = number;
 
 // configurable variables
-let notifyBeforeMin: number = 2.0;
-let intervalMin: number = 15.0;
+let notifyBeforeMin = 2.0;
+let intervalMin = 15.0;
 
 const notificationTimers: TimeHandler[] = [];
 let storedNextEvents: CalendarComponent[] = [];
