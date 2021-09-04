@@ -10,7 +10,7 @@ jobs:
       - name: Install modules
         run: npm ci
       - name: Run ESLint
-        run: npx eslint . --ext .js,.jsx,.ts,.tsx
+        run: npm run eslint
 
   prettier:
     runs-on: ubuntu-latest
