@@ -1,6 +1,7 @@
 # Gcal Big Notifier
 
 [![Lint](https://github.com/blue0513/gcal-big-notifier/actions/workflows/lint.yml/badge.svg)](https://github.com/blue0513/gcal-big-notifier/actions/workflows/lint.yml)
+[![Build](https://github.com/blue0513/gcal-big-notifier/actions/workflows/build.yml/badge.svg)](https://github.com/blue0513/gcal-big-notifier/actions/workflows/build.yml)
 
 [![Image from Gyazo](https://i.gyazo.com/11454f63032669576f7663634cff1c78.gif)](https://gyazo.com/11454f63032669576f7663634cff1c78)
 
@@ -36,7 +37,7 @@ Then, you should set the URL to `config.json` as follows.
 
 ```console
 $ npm install
-$ npm run start
+$ npm start
 ```
 
 The big window of the application will appear before the next schedule starts.
