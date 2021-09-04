@@ -4,15 +4,24 @@ import moment from "moment";
 import axios from "axios";
 import * as fs from "fs";
 import * as path from "path";
+import type { CalendarComponent, FullCalendar } from "ical";
+
+interface ConfigJson {
+  url: string;
+  fetchInterval?: number;
+  notificationMinutes?: number;
+}
+
+type TimeHandler = number;
 
 // configurable variables
-let notifyBeforeMin = 2.0;
-let intervalMin = 15.0;
+let notifyBeforeMin: number = 2.0;
+let intervalMin: number = 15.0;
 
-const notificationTimers: any[] = [];
-let storedNextEvents: any[] = [];
+const notificationTimers: TimeHandler[] = [];
+let storedNextEvents: CalendarComponent[] = [];
 
-const fetchConfigJson = () => {
+const fetchConfigJson = (): ConfigJson => {
   const fileBody = fs.readFileSync(
     path.join(__dirname, "../config.Json"),
     "utf8"
@@ -20,7 +29,7 @@ const fetchConfigJson = () => {
   return JSON.parse(fileBody);
 };
 
-const parseEvents = (data: any) => {
+const parseEvents = (data: FullCalendar): CalendarComponent[] => {
   const events = [];
 
   for (const k in data) {
@@ -36,24 +45,26 @@ const parseEvents = (data: any) => {
 };
 
 // TODO: should Unit Test
-const flattenEvents = (nestedEvents: any[]) => {
+const flattenEvents = (
+  nestedEvents: CalendarComponent[]
+): CalendarComponent[] => {
   return nestedEvents
-    .map((ev: any) => {
-      const evs = [];
+    .map((ev: CalendarComponent) => {
+      const evs: any[] = [];
 
       if (ev.rrule) {
-        const todayRules = ev.rrule.all().filter((time: any) => {
-          return isTodayEvent(time);
+        const todayRules: any[] = ev.rrule.all().filter((time: any) => {
+          return isTodayEvent(moment(time).toDate());
         });
         const todayEvents = todayRules.map((time: any) => {
-          return { summary: ev.summary, start: time };
+          return { type: "VEVENT", summary: ev.summary, start: time };
         });
         evs.push(todayEvents);
       }
 
       if (ev.recurrences) {
-        const todayEvents = ev.recurrences.filter((ev: any) => {
-          isTodayEvent(ev.start);
+        const todayEvents = ev.recurrences.filter((ev: CalendarComponent) => {
+          isTodayEvent(moment(ev.start).toDate());
         });
         evs.push(todayEvents);
       }
@@ -64,33 +75,33 @@ const flattenEvents = (nestedEvents: any[]) => {
     .flat(Infinity);
 };
 
-const isTodayEvent = (startTime: any) => {
+const isTodayEvent = (startTime: Date): boolean => {
   const isCurrentDate = moment(startTime).isSame(new Date(), "day");
   return isCurrentDate;
 };
 
-const isNextEvent = (startTime: any) => {
-  const now = moment();
+const isNextEvent = (startTime: Date): boolean => {
+  const now = new Date();
   const minutes = minutesBetween(now, startTime);
   return minutes > 0;
 };
 
-const minutesBetween = (since: any, until: any) => {
+const minutesBetween = (since: Date, until: Date): number => {
   const duration = moment.duration(moment(until).diff(since));
   return duration.asMinutes();
 };
 
-const setTimersAfterClear = (events: any[]) => {
+const setTimersAfterClear = (events: CalendarComponent[]): void => {
   clearTimers(notificationTimers);
 
   if (events.length === 0) return;
 
-  const now = moment();
-  events.forEach((ev: any) => {
-    const minutes = minutesBetween(now, ev.start);
+  const now = new Date();
+  events.forEach((ev: CalendarComponent) => {
+    const minutes = minutesBetween(now, moment(ev.start).toDate());
     const minutesFromNow = (minutes - notifyBeforeMin) * 60 * 1000;
     const title = ev.summary;
-    const startTime = ev.start;
+    const startTime = moment(ev.start);
 
     notificationTimers.push(
       setTimeout(displaySchedule, minutesFromNow, title, startTime)
@@ -98,15 +109,15 @@ const setTimersAfterClear = (events: any[]) => {
   });
 };
 
-const clearTimers = (targetTimers: any[]) => {
+const clearTimers = (targetTimers: TimeHandler[]): void => {
   if (targetTimers.length === 0) return;
 
-  targetTimers.forEach((timer: any) => {
+  targetTimers.forEach((timer: TimeHandler) => {
     clearTimeout(timer);
   });
 };
 
-const displaySchedule = (title: any, startTime: any) => {
+const displaySchedule = (title: string, startTime: Date): void => {
   const titleDiv = document.getElementsByClassName("child")[0];
   const scheduleDiv = document.getElementsByClassName("schedule")[0];
 
@@ -122,42 +133,43 @@ const displaySchedule = (title: any, startTime: any) => {
 };
 
 /* eslint-disable no-unused-vars */
-const buttonClick = () => {
-  console.log("buttonClick");
+const buttonClick = (): void => {
   ipcRenderer.send("hideWindow");
 };
 
-const showPopup = () => {
+const showPopup = (): void => {
   ipcRenderer.send("showPopup");
 };
 
-const hidePopup = () => {
+const hidePopup = (): void => {
   ipcRenderer.send("hidePopup");
 };
 /* eslint-enable no-unused-vars */
 
-const setConfiguration = (configJson: any) => {
+const setConfiguration = (configJson: ConfigJson): void => {
   const maybeNotifyBeforeMin = configJson["notificationMinutes"];
   const maybeFetchInterval = configJson["fetchInterval"];
 
-  if (!isNaN(maybeNotifyBeforeMin)) {
-    notifyBeforeMin = parseFloat(maybeNotifyBeforeMin);
+  if (maybeNotifyBeforeMin) {
+    notifyBeforeMin = maybeNotifyBeforeMin;
   }
 
-  if (!isNaN(maybeFetchInterval)) {
-    intervalMin = parseFloat(maybeFetchInterval);
+  if (maybeFetchInterval) {
+    intervalMin = maybeFetchInterval;
   }
 };
 
-async function fetchEventsData(configJson: any) {
+async function fetchEventsData(
+  configJson: ConfigJson
+): Promise<CalendarComponent[]> {
   const response = await axios.get(configJson["url"]);
-  const data = ical.parseICS(response["data"]);
+  const data: FullCalendar = ical.parseICS(response["data"]);
   return parseEvents(data);
 }
 
-const buildEventsListElement = (events: any[]) => {
+const buildEventsListElement = (events: CalendarComponent[]): string => {
   return sortEvents(events)
-    .map((ev: any) => {
+    .map((ev: CalendarComponent) => {
       const time = moment(ev.start).format("HH:mm");
       const title = ev.summary;
       return `${time} _ ${title}\n`;
@@ -165,7 +177,7 @@ const buildEventsListElement = (events: any[]) => {
     .join("");
 };
 
-const attachNextEvents = (nextEvents: any[]) => {
+const attachNextEvents = (nextEvents: CalendarComponent[]): void => {
   const targetDiv = document.getElementsByClassName("child-small")[0];
 
   if (targetDiv) {
@@ -177,38 +189,54 @@ const attachNextEvents = (nextEvents: any[]) => {
   }
 };
 
-const storeNextEvents = (events: any[]) => {
+const storeNextEvents = (events: CalendarComponent[]): void => {
   storedNextEvents = events;
 };
 
-const fetchNextEvents = () => {
+const fetchNextEvents = (): CalendarComponent[] => {
   return storedNextEvents;
 };
 
-const findNextEvent = (nextEvents: any[]) => {
+const findNextEvent = (nextEvents: CalendarComponent[]): CalendarComponent => {
   return sortEvents(nextEvents)[0];
 };
 
-const sortEvents = (events: any[]) => {
-  return events.sort(minutesBetween).reverse();
+const sortEvents = (events: CalendarComponent[]): CalendarComponent[] => {
+  return events
+    .sort((a, b) => {
+      if (a.start && b.start) {
+        return minutesBetween(a.start, b.start);
+      } else if (!a.start) {
+        return 1;
+      } else {
+        return -1;
+      }
+    })
+    .reverse();
 };
 
-const filterTodayEvents = (events: any[]) => {
-  return events.filter((ev: any) => isTodayEvent(ev.start));
+const filterTodayEvents = (
+  events: CalendarComponent[]
+): CalendarComponent[] => {
+  return events.filter((ev: CalendarComponent) =>
+    isTodayEvent(moment(ev.start).toDate())
+  );
 };
 
-const filterNextEvents = (events: any[]) => {
-  return events.filter((ev: any) => isNextEvent(ev.start));
+const filterNextEvents = (events: CalendarComponent[]): CalendarComponent[] => {
+  return events.filter((ev: CalendarComponent) =>
+    isNextEvent(moment(ev.start).toDate())
+  );
 };
 
-const registerIpcReceive = () => {
+const registerIpcReceive = (): void => {
   ipcRenderer.on("fromMain", () => {
     const nextEvents = fetchNextEvents();
     attachNextEvents(nextEvents);
   });
 };
 
-async function main(configJson: any) {
+async function main(configJson: ConfigJson): Promise<void> {
   const eventsData = await fetchEventsData(configJson);
   const flattenEventsData = flattenEvents(eventsData);
   const todayEvents = filterTodayEvents(flattenEventsData);
@@ -217,21 +245,22 @@ async function main(configJson: any) {
 
   const nextEvent = findNextEvent(nextEvents);
   if (nextEvent) {
-    displaySchedule(nextEvent.summary, nextEvent.start);
+    const title = nextEvent.summary ? nextEvent.summary : "no title";
+    displaySchedule(title, moment(nextEvent.start).toDate());
   } else {
-    displaySchedule("All Schedule Finished", moment());
+    displaySchedule("All Schedule Finished", moment().toDate());
   }
 
   setTimersAfterClear(nextEvents);
 }
 
-async function beforeStart(configJson: any) {
+async function beforeStart(configJson: ConfigJson): Promise<void> {
   registerIpcReceive();
   registerButtonEvents();
   setConfiguration(configJson);
 }
 
-const registerButtonEvents = () => {
+const registerButtonEvents = (): void => {
   const closeButton = document.getElementById("hide-button");
   if (closeButton) {
     closeButton.addEventListener("click", () => {
@@ -254,7 +283,7 @@ const registerButtonEvents = () => {
   }
 };
 
-async function start() {
+async function start(): Promise<void> {
   const configJson = fetchConfigJson();
   await beforeStart(configJson);
 

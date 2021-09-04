@@ -4,8 +4,8 @@
     "description": "",
     "main": "src/main.js",
     "scripts": {
-        "build": "tsc",
-        "watch": "tsc -w",
+        "build": "npx tsc",
+        "watch": "npx tsc -w",
         "start": "npm run build && npx electron ./dist/main.js",
         "eslint": "npx eslint ./src",
         "prettier": "npx prettier --check ./src"
