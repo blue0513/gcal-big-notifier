@@ -1,8 +1,8 @@
-const { app, BrowserWindow } = require("electron");
-const { ipcMain } = require("electron");
+import { app, BrowserWindow, ipcMain } from "electron";
+import * as path from "path";
 
-let mainWindow = null;
-let popupWindow = null;
+let mainWindow: any = null;
+let popupWindow: any = null;
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -10,8 +10,7 @@ const createWindow = () => {
     height: 300,
     frame: false,
     hasShadow: false,
-    // resizable: true,
-    titleBarStyle: "customButtonOnHover",
+    titleBarStyle: "customButtonsOnHover",
     movable: true,
     webPreferences: {
       nodeIntegration: true,
@@ -19,7 +18,7 @@ const createWindow = () => {
     },
   });
 
-  mainWindow.loadFile("index.html");
+  mainWindow.loadFile(path.join(__dirname, "../index.html"));
   createPopupWindow();
 
   // Open the DevTools.
@@ -38,10 +37,10 @@ const createPopupWindow = () => {
       contextIsolation: false,
     },
   });
-  popupWindow.loadFile("popup.html");
+  popupWindow.loadFile(path.join(__dirname, "../popup.html"));
 
   popupWindow.on("show", () => {
-    popupWindow.webContents.send("fromMain", "ABC");
+    popupWindow.webContents.send("fromMain");
   });
 };
 

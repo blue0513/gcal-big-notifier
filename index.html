@@ -15,16 +15,18 @@
     </div>
     <input
       class="hide-button"
+      id="hide-button"
       type="button"
       value="CLOSE"
-      onclick="buttonClick()"
       />
     <input
       class="popup-button"
+      id="show-popup-button"
       type="button"
       value="next events"
-      onclick="showPopup()"
       />
-    <script src="./src/renderer.js"></script>
+    <script>
+      require("./dist/renderer.js")
+    </script>
   </body>
 </html>

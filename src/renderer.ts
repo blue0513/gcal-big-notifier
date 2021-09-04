@@ -1,27 +1,31 @@
-const { ipcRenderer } = require("electron");
-const ical = require("ical");
-const moment = require("moment");
-const axios = require("axios");
-const fs = require("fs").promises;
+import { ipcRenderer } from "electron";
+import ical from "ical";
+import moment from "moment";
+import axios from "axios";
+import * as fs from "fs";
+import * as path from "path";
 
 // configurable variables
 let notifyBeforeMin = 2.0;
 let intervalMin = 15.0;
 
-let notificationTimers = [];
-let storedNextEvents = [];
+const notificationTimers: any[] = [];
+let storedNextEvents: any[] = [];
 
-async function fetchConfigJson() {
-  const fileBody = await fs.readFile("./config.Json", "utf-8");
+const fetchConfigJson = () => {
+  const fileBody = fs.readFileSync(
+    path.join(__dirname, "../config.Json"),
+    "utf8"
+  );
   return JSON.parse(fileBody);
-}
+};
 
-const parseEvents = (data) => {
-  let events = [];
+const parseEvents = (data: any) => {
+  const events = [];
 
-  for (let k in data) {
+  for (const k in data) {
     if (data && Object.prototype.hasOwnProperty.call(data, k)) {
-      let ev = data[k];
+      const ev = data[k];
       if (ev.type == "VEVENT") {
         events.push(ev);
       }
@@ -32,23 +36,23 @@ const parseEvents = (data) => {
 };
 
 // TODO: should Unit Test
-const flattenEvents = (nestedEvents) => {
+const flattenEvents = (nestedEvents: any[]) => {
   return nestedEvents
-    .map((ev) => {
-      let evs = [];
+    .map((ev: any) => {
+      const evs = [];
 
       if (ev.rrule) {
-        const todayRules = ev.rrule.all().filter((time) => {
+        const todayRules = ev.rrule.all().filter((time: any) => {
           return isTodayEvent(time);
         });
-        const todayEvents = todayRules.map((time) => {
+        const todayEvents = todayRules.map((time: any) => {
           return { summary: ev.summary, start: time };
         });
         evs.push(todayEvents);
       }
 
       if (ev.recurrences) {
-        const todayEvents = ev.recurrences.filter((ev) => {
+        const todayEvents = ev.recurrences.filter((ev: any) => {
           isTodayEvent(ev.start);
         });
         evs.push(todayEvents);
@@ -60,33 +64,33 @@ const flattenEvents = (nestedEvents) => {
     .flat(Infinity);
 };
 
-const isTodayEvent = (startTime) => {
+const isTodayEvent = (startTime: any) => {
   const isCurrentDate = moment(startTime).isSame(new Date(), "day");
   return isCurrentDate;
 };
 
-const isNextEvent = (startTime) => {
+const isNextEvent = (startTime: any) => {
   const now = moment();
   const minutes = minutesBetween(now, startTime);
   return minutes > 0;
 };
 
-const minutesBetween = (since, until) => {
+const minutesBetween = (since: any, until: any) => {
   const duration = moment.duration(moment(until).diff(since));
   return duration.asMinutes();
 };
 
-const setTimersAfterClear = (events) => {
+const setTimersAfterClear = (events: any[]) => {
   clearTimers(notificationTimers);
 
   if (events.length === 0) return;
 
   const now = moment();
-  events.forEach((ev) => {
-    let minutes = minutesBetween(now, ev.start);
-    let minutesFromNow = (minutes - notifyBeforeMin) * 60 * 1000;
-    let title = ev.summary;
-    let startTime = ev.start;
+  events.forEach((ev: any) => {
+    const minutes = minutesBetween(now, ev.start);
+    const minutesFromNow = (minutes - notifyBeforeMin) * 60 * 1000;
+    const title = ev.summary;
+    const startTime = ev.start;
 
     notificationTimers.push(
       setTimeout(displaySchedule, minutesFromNow, title, startTime)
@@ -94,26 +98,32 @@ const setTimersAfterClear = (events) => {
   });
 };
 
-const clearTimers = (targetTimers) => {
+const clearTimers = (targetTimers: any[]) => {
   if (targetTimers.length === 0) return;
 
-  targetTimers.forEach((timer) => {
+  targetTimers.forEach((timer: any) => {
     clearTimeout(timer);
   });
 };
 
-const displaySchedule = (title, startTime) => {
+const displaySchedule = (title: any, startTime: any) => {
   const titleDiv = document.getElementsByClassName("child")[0];
   const scheduleDiv = document.getElementsByClassName("schedule")[0];
 
-  titleDiv.innerText = title;
-  scheduleDiv.innerText = moment(startTime).format("HH:mm");
+  if (titleDiv) {
+    (<HTMLElement>titleDiv).innerText = title;
+  }
+
+  if (scheduleDiv) {
+    (<HTMLElement>scheduleDiv).innerText = moment(startTime).format("HH:mm");
+  }
 
   ipcRenderer.send("sendSchedule");
 };
 
 /* eslint-disable no-unused-vars */
 const buttonClick = () => {
+  console.log("buttonClick");
   ipcRenderer.send("hideWindow");
 };
 
@@ -126,7 +136,7 @@ const hidePopup = () => {
 };
 /* eslint-enable no-unused-vars */
 
-const setConfiguration = (configJson) => {
+const setConfiguration = (configJson: any) => {
   const maybeNotifyBeforeMin = configJson["notificationMinutes"];
   const maybeFetchInterval = configJson["fetchInterval"];
 
@@ -139,32 +149,35 @@ const setConfiguration = (configJson) => {
   }
 };
 
-async function fetchEventsData(configJson) {
+async function fetchEventsData(configJson: any) {
   const response = await axios.get(configJson["url"]);
   const data = ical.parseICS(response["data"]);
   return parseEvents(data);
 }
 
-const buildEventsListElement = (events) => {
+const buildEventsListElement = (events: any[]) => {
   return sortEvents(events)
-    .map((ev) => {
-      let time = moment(ev.start).format("HH:mm");
-      let title = ev.summary;
+    .map((ev: any) => {
+      const time = moment(ev.start).format("HH:mm");
+      const title = ev.summary;
       return `${time} _ ${title}\n`;
     })
     .join("");
 };
 
-const attachNextEvents = (nextEvents) => {
+const attachNextEvents = (nextEvents: any[]) => {
   const targetDiv = document.getElementsByClassName("child-small")[0];
 
   if (targetDiv) {
-    const text = buildEventsListElement(nextEvents);
-    targetDiv.innerText = text;
+    const text =
+      nextEvents.length > 0
+        ? buildEventsListElement(nextEvents)
+        : "All Schedule Finished";
+    (<HTMLElement>targetDiv).innerText = text;
   }
 };
 
-const storeNextEvents = (events) => {
+const storeNextEvents = (events: any[]) => {
   storedNextEvents = events;
 };
 
@@ -172,20 +185,20 @@ const fetchNextEvents = () => {
   return storedNextEvents;
 };
 
-const findNextEvent = (nextEvents) => {
+const findNextEvent = (nextEvents: any[]) => {
   return sortEvents(nextEvents)[0];
 };
 
-const sortEvents = (events) => {
+const sortEvents = (events: any[]) => {
   return events.sort(minutesBetween).reverse();
 };
 
-const filterTodayEvents = (events) => {
-  return events.filter((ev) => isTodayEvent(ev.start));
+const filterTodayEvents = (events: any[]) => {
+  return events.filter((ev: any) => isTodayEvent(ev.start));
 };
 
-const filterNextEvents = (events) => {
-  return events.filter((ev) => isNextEvent(ev.start));
+const filterNextEvents = (events: any[]) => {
+  return events.filter((ev: any) => isNextEvent(ev.start));
 };
 
 const registerIpcReceive = () => {
@@ -195,7 +208,7 @@ const registerIpcReceive = () => {
   });
 };
 
-async function main(configJson) {
+async function main(configJson: any) {
   const eventsData = await fetchEventsData(configJson);
   const flattenEventsData = flattenEvents(eventsData);
   const todayEvents = filterTodayEvents(flattenEventsData);
@@ -203,18 +216,46 @@ async function main(configJson) {
   storeNextEvents(nextEvents);
 
   const nextEvent = findNextEvent(nextEvents);
-  displaySchedule(nextEvent.summary, nextEvent.start);
+  if (nextEvent) {
+    displaySchedule(nextEvent.summary, nextEvent.start);
+  } else {
+    displaySchedule("All Schedule Finished", moment());
+  }
 
   setTimersAfterClear(nextEvents);
 }
 
-async function beforeStart(configJson) {
+async function beforeStart(configJson: any) {
   registerIpcReceive();
+  registerButtonEvents();
   setConfiguration(configJson);
 }
 
+const registerButtonEvents = () => {
+  const closeButton = document.getElementById("hide-button");
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      buttonClick();
+    });
+  }
+
+  const popupButton = document.getElementById("show-popup-button");
+  if (popupButton) {
+    popupButton.addEventListener("click", () => {
+      showPopup();
+    });
+  }
+
+  const hidePopupButton = document.getElementById("hide-popup-button");
+  if (hidePopupButton) {
+    hidePopupButton.addEventListener("click", () => {
+      hidePopup();
+    });
+  }
+};
+
 async function start() {
-  const configJson = await fetchConfigJson();
+  const configJson = fetchConfigJson();
   await beforeStart(configJson);
 
   console.log(

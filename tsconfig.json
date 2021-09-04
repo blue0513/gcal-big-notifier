@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "lib": ["dom", "es5", "es6", "es2019"],
+        "module": "commonJs",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "strict": true,
+        "sourceMap": true,
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "baseUrl": ".",
+        "paths": {
+            "*": ["node_modules/*"]
+        },
+        "moduleResolution": "node"
+    },
+    "include": [
+        "src/**/*"
+    ]
+}
