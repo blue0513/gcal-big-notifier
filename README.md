@@ -9,7 +9,7 @@ You'll never miss a meeting notification again!
 ## What is gcal-big-notifier
 
 Connecting with Google Calendar, `gcal-big-notifier` will prevent you from forgetting to attend your next schedule.  
-When the next scheduled time is less than a minute away, the big window will appear and stay on the top of screen.
+When the next scheduled time is less than minutes away, the big window will appear and stay on the top of screen.
 
 ## Quick Start
 
@@ -17,13 +17,20 @@ When the next scheduled time is less than a minute away, the big window will app
 
 First, you should get the iCal URL from Google Calendar. See [this document](https://support.google.com/calendar/answer/37648?hl=en#zippy=%2Cget-your-calendar-view-only).
 
-Then, you should set the URL to `secret.json` as follows.
+Then, you should set the URL to `config.json` as follows.
 
 ```json
 {
-  "url": "YOUR URL"
+  "url": "YOUR URL",
+  "fetchInterval": 15.0,
+  "notificationMinutes": 2.0
 }
 ```
+
++ fetchInterval (default: `15.0`)
+  + the interval minutes to fetch data from Google Calendar
++ notificationMinutes (default: `2.0`)
+  + minutes before notification triggered
 
 ### 2. Run the application
 
@@ -32,4 +39,4 @@ $ npm install
 $ npm run start
 ```
 
-The big window of the application will appear 1 min before the next schedule starts.
+The big window of the application will appear before the next schedule starts.
