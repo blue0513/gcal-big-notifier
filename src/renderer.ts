@@ -292,7 +292,7 @@ async function start(): Promise<void> {
   );
 
   main(configJson);
-  setInterval(main, intervalMin * 60 * 1000);
+  setInterval(main, intervalMin * 60 * 1000, configJson);
 }
 
 start();
