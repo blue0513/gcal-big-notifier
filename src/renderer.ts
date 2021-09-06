@@ -2,9 +2,11 @@ import { ipcRenderer } from "electron";
 import ical from "ical";
 import moment from "moment";
 import axios from "axios";
+import schedule from "node-schedule";
 import * as fs from "fs";
 import * as path from "path";
 import type { CalendarComponent, FullCalendar } from "ical";
+import type { Job } from "node-schedule";
 
 interface ConfigJson {
   url: string;
@@ -12,13 +14,11 @@ interface ConfigJson {
   notificationMinutes?: number;
 }
 
-type TimeHandler = number;
-
 // configurable variables
 let notifyBeforeMin = 2.0;
 let intervalMin = 15.0;
 
-const notificationTimers: TimeHandler[] = [];
+const notificationJobs: Job[] = [];
 let storedNextEvents: CalendarComponent[] = [];
 
 const fetchConfigJson = (): ConfigJson => {
@@ -91,29 +91,27 @@ const minutesBetween = (since: Date, until: Date): number => {
   return duration.asMinutes();
 };
 
-const setTimersAfterClear = (events: CalendarComponent[]): void => {
-  clearTimers(notificationTimers);
+const setTimerJobsAfterClear = (events: CalendarComponent[]): void => {
+  clearTimerJobs(notificationJobs);
 
   if (events.length === 0) return;
 
-  const now = new Date();
   events.forEach((ev: CalendarComponent) => {
-    const minutes = minutesBetween(now, moment(ev.start).toDate());
-    const minutesFromNow = (minutes - notifyBeforeMin) * 60 * 1000;
-    const title = ev.summary;
     const startTime = moment(ev.start);
-
-    notificationTimers.push(
-      setTimeout(displaySchedule, minutesFromNow, title, startTime)
-    );
+    const targetTime = startTime.add(-1 * notifyBeforeMin, "minutes").toDate();
+    const title = ev.summary || "No Title";
+    const job = schedule.scheduleJob(targetTime, () => {
+      displaySchedule(title, startTime.toDate());
+    });
+    notificationJobs.push(job);
   });
 };
 
-const clearTimers = (targetTimers: TimeHandler[]): void => {
-  if (targetTimers.length === 0) return;
+const clearTimerJobs = (targetTimerJobs: Job[]): void => {
+  if (targetTimerJobs.length === 0) return;
 
-  targetTimers.forEach((timer: TimeHandler) => {
-    clearTimeout(timer);
+  targetTimerJobs.forEach((job: Job) => {
+    job.cancel();
   });
 };
 
@@ -251,7 +249,7 @@ async function main(configJson: ConfigJson): Promise<void> {
     displaySchedule("All Schedule Finished", moment().toDate());
   }
 
-  setTimersAfterClear(nextEvents);
+  setTimerJobsAfterClear(nextEvents);
 }
 
 async function beforeStart(configJson: ConfigJson): Promise<void> {
