@@ -53,10 +53,10 @@ const flattenEvents = (
       const evs: any[] = [];
 
       if (ev.rrule) {
-        const todayRules: any[] = ev.rrule.all().filter((time: any) => {
-          return isTodayEvent(moment(time).toDate());
+        const todayRules: Date[] = ev.rrule.all().filter((time: Date) => {
+          return isTodayEvent(time);
         });
-        const todayEvents = todayRules.map((time: any) => {
+        const todayEvents = todayRules.map((time: Date) => {
           return { type: "VEVENT", summary: ev.summary, start: time };
         });
         evs.push(todayEvents);
@@ -101,7 +101,8 @@ const setTimerJobsAfterClear = (events: CalendarComponent[]): void => {
     const targetTime = startTime.add(-1 * notifyBeforeMin, "minutes").toDate();
     const title = ev.summary || "No Title";
     const job = schedule.scheduleJob(targetTime, () => {
-      displaySchedule(title, startTime.toDate());
+      setScheduleText(title, startTime.toDate());
+      showWindow();
     });
     notificationJobs.push(job);
   });
@@ -115,7 +116,7 @@ const clearTimerJobs = (targetTimerJobs: Job[]): void => {
   });
 };
 
-const displaySchedule = (title: string, startTime: Date): void => {
+const setScheduleText = (title: string, startTime: Date): void => {
   const titleDiv = document.getElementsByClassName("child")[0];
   const scheduleDiv = document.getElementsByClassName("schedule")[0];
 
@@ -126,7 +127,9 @@ const displaySchedule = (title: string, startTime: Date): void => {
   if (scheduleDiv) {
     (<HTMLElement>scheduleDiv).innerText = moment(startTime).format("HH:mm");
   }
+};
 
+const showWindow = (): void => {
   ipcRenderer.send("sendSchedule");
 };
 
@@ -244,9 +247,9 @@ async function main(configJson: ConfigJson): Promise<void> {
   const nextEvent = findNextEvent(nextEvents);
   if (nextEvent) {
     const title = nextEvent.summary ? nextEvent.summary : "no title";
-    displaySchedule(title, moment(nextEvent.start).toDate());
+    setScheduleText(title, moment(nextEvent.start).toDate());
   } else {
-    displaySchedule("All Schedule Finished", moment().toDate());
+    setScheduleText("All Schedule Finished", moment().toDate());
   }
 
   setTimerJobsAfterClear(nextEvents);
